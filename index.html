@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pīwakawaka's Advanced Biotech Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Lexend', sans-serif; 
+            background-color: #F0FDF4; /* light green */
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; 
+            touch-action: none; 
+            user-select: none; 
+            -webkit-user-select: none; 
+        }
+        
+        .bio-grid {
+            background-image: radial-gradient(rgba(16, 185, 129, 0.15) 3px, transparent 3px);
+            background-size: 40px 40px;
+            z-index: 0;
+        }
+
+        .animate-float { animation: float 3s ease-in-out infinite; transform-origin: bottom center; }
+        @keyframes float { 0% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0px) scale(1); } }
+        
+        .animate-bounce-fast { animation: bounce-fast 0.6s infinite; }
+        @keyframes bounce-fast { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        
+        .animate-pulse-glow { animation: pulse-glow 2s infinite alternate; }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); } 100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.8); } }
+        
+        .game-btn { box-shadow: 0 6px 0px rgba(0,0,0,0.2); transition: all 0.1s; }
+        .game-btn:active:not(:disabled) { transform: translateY(6px) !important; box-shadow: 0 0px 0px rgba(0,0,0,0.2) !important; }
+        .level-locked { filter: grayscale(100%) opacity(0.6); pointer-events: none; }
+        
+        .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+        
+        .screen-container { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease-in-out; }
+        .slide-in-right { transform: translateX(0%); opacity: 1; pointer-events: auto; }
+        .slide-out-left { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+        .slide-out-right { transform: translateX(100%); opacity: 0; pointer-events: none; }
+        
+        .particle { position: absolute; pointer-events: none; animation: pop 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; z-index: 100; font-weight: bold; color: #10b981; }
+        @keyframes pop { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(var(--rot)); opacity: 0; } }
+        
+        .star-filled { filter: grayscale(0%) opacity(1) drop-shadow(0 0 5px #10b981); transform: scale(1.1); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .star-empty { filter: grayscale(100%) opacity(0.3); transform: scale(0.9); transition: all 0.3s; }
+        
+        /* Mobile Scroll System */
+        .scroll-area { 
+            -webkit-overflow-scrolling: touch; 
+            overscroll-behavior-y: contain; 
+            touch-action: pan-y !important; 
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        .scroll-area::-webkit-scrollbar { width: 8px; }
+        .scroll-area::-webkit-scrollbar-track { background: rgba(16, 185, 129, 0.1); border-radius: 8px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.6); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+        
+        .tts-active { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.4); border-color: #f59e0b !important; transform: scale(1.02); transition: all 0.3s ease-in-out; }
+        
+        .speech-bubble { position: relative; }
+        .speech-bubble::after { content: ''; position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); border-width: 20px 20px 0; border-style: solid; border-color: white transparent transparent transparent; display: block; width: 0; z-index: 1; }
+        .speech-bubble::before { content: ''; position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%); border-width: 24px 24px 0; border-style: solid; border-color: #a7f3d0 transparent transparent transparent; display: block; width: 0; z-index: 0; }
+        
+        .bio-cloud { position: absolute; opacity: 0.7; animation: drift linear infinite; pointer-events: none; z-index: 0; filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); }
+        @keyframes drift { from { transform: translateX(-20vw) rotate(0deg); } to { transform: translateX(120vw) rotate(20deg); } }
+        
+        .bio-sun { position: absolute; top: 10%; right: 15%; width: 120px; height: 120px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 80px #fcd34d; animation: pulse-sun 4s infinite alternate; pointer-events: none; z-index: 0; }
+        @keyframes pulse-sun { 0% { transform: scale(1); box-shadow: 0 0 50px #fbbf24; } 100% { transform: scale(1.05); box-shadow: 0 0 90px #fde68a; } }
+        
+        .tree-sway { display: inline-block; animation: sway 4s ease-in-out infinite alternate; transform-origin: bottom center; }
+        @keyframes sway { 0% { transform: rotate(-3deg); } 100% { transform: rotate(3deg); } }
+        
+        #level-visual div { font-size: 4rem !important; line-height: 1 !important; }
+        @media (min-width: 640px) { #level-visual div { font-size: 6rem !important; } }
+    </style>
+</head>
+<body>
+
+    <!-- Biological Forest Background -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden bio-grid">
+        <div class="bio-sun"></div>
+        <div class="bio-cloud text-6xl" style="top: 15%; animation-duration: 45s; font-size: 6rem;">🧬</div>
+        <div class="bio-cloud text-5xl" style="top: 35%; animation-duration: 60s; animation-delay: -20s; font-size: 5rem;">🌿</div>
+        <div class="bio-cloud text-7xl" style="top: 5%; animation-duration: 38s; animation-delay: -10s; font-size: 7rem;">🦠</div>
+        <div class="bio-cloud text-7xl" style="top: 60%; animation-duration: 50s; animation-delay: -30s; font-size: 4rem;">🔬</div>
+        <div class="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-emerald-200 to-transparent opacity-50"></div>
+        <div class="absolute bottom-10 left-10 text-8xl tree-sway opacity-90">🌲</div>
+        <div class="absolute bottom-5 right-20 text-9xl tree-sway opacity-90" style="animation-delay: -2s;">🌳</div>
+    </div>
+
+    <!-- Animal SVGs (Kept unchanged as requested) -->
+    <template id="svg-piwakawaka"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M40,55 C40,40 50,30 65,30 C75,30 80,40 75,55 C70,70 50,75 40,55 Z" fill="#8B5A2B"/><path d="M60,35 C70,35 75,45 70,55 Z" fill="#4A3020"/><ellipse cx="55" cy="50" rx="15" ry="10" fill="#E6DCC8"/><path d="M75,45 L85,42 L78,50 Z" fill="#333"/><circle cx="65" cy="40" r="3" fill="#000"/><circle cx="66" cy="39" r="1" fill="#fff"/><path d="M45,55 C20,40 10,60 15,80 C30,70 45,75 55,65 Z" fill="#A08060"/><path d="M15,80 C25,85 45,85 55,75" fill="none" stroke="#fff" stroke-width="2"/><path d="M50,70 L45,85 M55,70 L55,85" stroke="#333" stroke-width="2"/></svg></template>
+    <template id="svg-kekeno"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M10,85 C30,95 70,95 80,70 C90,40 75,20 60,25 C50,28 45,45 35,55 C20,70 10,70 10,85 Z" fill="#4a4441"/><path d="M40,70 C50,85 70,80 60,65 Z" fill="#302c2a"/><circle cx="65" cy="35" r="3" fill="#000"/><circle cx="80" cy="32" r="4" fill="#1a1a1a"/><path d="M82,35 L95,40 M82,38 L93,45" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg></template>
+    <template id="svg-kiwi"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M40,75 L40,90 M35,90 L45,90 M60,75 L60,90 M55,90 L65,90" stroke="#d97736" stroke-width="4" stroke-linecap="round"/><ellipse cx="50" cy="55" rx="35" ry="25" fill="#5c4033"/><circle cx="25" cy="45" r="15" fill="#5c4033"/><path d="M12,50 Q5,65 2,80" stroke="#e8c39e" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="20" cy="42" r="2.5" fill="#000"/></svg></template>
+    <template id="svg-huntaway"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M30,90 L30,50 C30,30 50,30 60,35 C75,40 85,50 85,70 L85,90 Z" fill="#111111"/><path d="M60,65 C75,65 85,75 85,90 L60,90 Z" fill="#c47029"/><circle cx="55" cy="40" r="4" fill="#c47029"/><path d="M75,55 C85,55 85,65 85,70 C75,70 70,65 75,55 Z" fill="#c47029"/><path d="M35,35 C25,45 25,60 35,55 Z" fill="#111111"/><circle cx="85" cy="55" r="3" fill="#000"/><circle cx="65" cy="45" r="2.5" fill="#fff"/><circle cx="66" cy="45" r="1.5" fill="#000"/></svg></template>
+    <template id="svg-kea"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M40,80 L40,90 M55,80 L55,90" stroke="#333" stroke-width="4" stroke-linecap="round"/><path d="M20,60 L5,85 L25,75 Z" fill="#4d5e3c"/><ellipse cx="45" cy="55" rx="25" ry="30" fill="#5e6b45"/><path d="M35,45 C50,45 65,70 45,80 Z" fill="#5e6b45"/><path d="M40,55 C55,55 60,70 45,75 Z" fill="#d95e16"/><circle cx="60" cy="35" r="18" fill="#5e6b45"/><path d="M75,30 C90,30 90,50 80,55 C85,45 80,40 75,40 Z" fill="#4a4a4a"/><circle cx="65" cy="32" r="2.5" fill="#000"/><circle cx="55" cy="40" r="4" fill="#d95e16" opacity="0.6"/></svg></template>
+    <template id="svg-whio"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><ellipse cx="50" cy="60" rx="35" ry="25" fill="#5A6B7C"/><circle cx="75" cy="40" r="15" fill="#5A6B7C"/><path d="M70,55 Q80,80 40,85 Z" fill="#8B4513"/><path d="M85,35 Q98,40 88,45 Z" fill="#E6DCC8"/><circle cx="78" cy="35" r="2.5" fill="#000"/></svg></template>
+    <template id="svg-tui"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><path d="M30,80 Q50,90 65,70 Q75,40 60,30 Q40,30 30,50 Z" fill="#1A2B3C"/><circle cx="55" cy="60" r="6" fill="#FFF" filter="drop-shadow(0 2px 2px rgba(0,0,0,0.3))"/><circle cx="65" cy="35" r="2" fill="#000"/><path d="M68,32 Q85,35 68,40 Z" fill="#111"/></svg></template>
+    <template id="svg-ruru"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><ellipse cx="50" cy="65" rx="30" ry="25" fill="#5C4033"/><circle cx="50" cy="35" r="22" fill="#4A3020"/><circle cx="40" cy="35" r="8" fill="#F4C430"/><circle cx="60" cy="35" r="8" fill="#F4C430"/><circle cx="40" cy="35" r="3" fill="#000"/><circle cx="60" cy="35" r="3" fill="#000"/><path d="M45,45 L55,45 L50,55 Z" fill="#111"/></svg></template>
+    <template id="svg-takahe"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><ellipse cx="45" cy="60" rx="35" ry="30" fill="#204070"/><ellipse cx="70" cy="40" rx="15" ry="18" fill="#204070"/><path d="M80,30 Q95,45 80,55 Z" fill="#C03030"/><circle cx="75" cy="35" r="2.5" fill="#000"/><path d="M35,80 L35,95 M55,80 L55,95" stroke="#C03030" stroke-width="4"/></svg></template>
+    <template id="svg-kakapo"><svg viewBox="0 0 100 100" class="w-32 h-32 sm:w-48 sm:h-48 drop-shadow-2xl"><ellipse cx="50" cy="55" rx="35" ry="40" fill="#557B3E"/><circle cx="50" cy="35" r="20" fill="#759A4E"/><path d="M45,40 L55,40 L50,50 Z" fill="#B0A080"/><circle cx="42" cy="32" r="2" fill="#000"/><circle cx="58" cy="32" r="2" fill="#000"/><path d="M15,55 Q5,70 15,85" stroke="#446130" stroke-width="3" fill="none"/></svg></template>
+
+    <!-- Mobile-Optimized Top Controls -->
+    <div class="absolute top-2 sm:top-4 right-2 sm:right-4 z-[60] flex gap-2 sm:gap-4 pointer-events-auto">
+        <button id="btn-educator" class="game-btn bg-amber-500 hover:bg-amber-400 text-white rounded-full w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-2xl border-2 sm:border-4 border-white shadow-lg" title="Educator Notes">💡</button>
+        <button id="btn-music" class="game-btn bg-emerald-500 hover:bg-emerald-400 text-white rounded-full w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-2xl border-2 sm:border-4 border-white shadow-lg">🎵</button>
+        <button id="btn-speech" class="game-btn bg-teal-500 hover:bg-teal-400 text-white rounded-full w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-2xl border-2 sm:border-4 border-white shadow-lg">🔊</button>
+    </div>
+
+    <!-- MAIN HUB SCREEN -->
+    <div id="screen-hub" class="screen-container slide-in-right absolute inset-0 flex flex-col items-center pt-20 pb-4 z-20 pointer-events-none">
+        <div class="bg-white/95 p-6 rounded-3xl shadow-2xl border-4 border-emerald-200 mb-6 text-center max-w-2xl mx-4 z-10 shrink-0 mt-4 sm:mt-0 relative overflow-hidden pointer-events-auto">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-amber-400"></div>
+            <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 mb-2 drop-shadow-sm">Advanced Journeys: Biotechnology</h1>
+            <p class="text-gray-600 text-lg sm:text-2xl font-bold" id="hub-instruction">Kia ora! Let's explore the amazing world of Bioengineering!</p>
+        </div>
+        <div id="map-nodes" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative z-10 w-full max-w-4xl px-4 overflow-y-auto scroll-area flex-1 min-h-0 pb-32 sm:pb-12 pointer-events-auto"></div>
+    </div>
+
+    <!-- LEVEL PLAY SCREEN -->
+    <div id="screen-level" class="screen-container slide-out-right absolute inset-0 flex flex-col z-10 pt-20 sm:pt-24 pointer-events-none">
+        
+        <div class="absolute top-2 sm:top-4 left-2 sm:left-4 z-50 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 pointer-events-auto max-w-[60%]">
+            <button id="btn-back" class="game-btn bg-rose-500 hover:bg-rose-400 text-white rounded-full px-4 py-2 sm:px-6 sm:py-3 font-black text-sm sm:text-xl border-2 sm:border-4 border-white whitespace-nowrap shadow-lg">⬅️ Map</button>
+            <div id="level-progress" class="bg-white/95 rounded-full px-2 sm:px-4 py-1 sm:py-2 flex items-center gap-0.5 sm:gap-1 shadow-lg border-2 border-emerald-200 min-h-[32px] sm:min-h-[44px]"></div>
+        </div>
+
+        <div class="relative flex-1 min-h-0 flex flex-col items-center justify-start p-4 sm:p-8 overflow-y-auto scroll-area z-10 w-full pointer-events-auto" id="level-playarea">
+            <div class="flex flex-col items-center justify-center w-full relative shrink-0 max-w-4xl mx-auto">
+                <div id="instruction-box" class="speech-bubble bg-white p-5 sm:p-8 rounded-3xl shadow-xl border-4 border-teal-200 text-center w-full mb-8 sm:mb-10 transition-all duration-300 z-20">
+                    <p id="level-instruction" class="text-xl sm:text-3xl font-bold text-slate-800 leading-snug"></p>
+                </div>
+                <div id="level-character" class="mb-4 z-10 transform scale-90 sm:scale-110 origin-bottom filter drop-shadow-xl"></div>
+                <div id="level-visual" class="bg-white/95 p-6 sm:p-8 rounded-full shadow-lg border-4 border-emerald-100 font-black text-gray-800 text-center flex items-center justify-center min-w-[120px] min-h-[120px] mb-8 sm:mb-10 transition-transform duration-200 animate-pulse-glow"></div>
+            </div>
+            
+            <div id="level-options" class="flex flex-col w-full max-w-2xl gap-4 sm:gap-6 shrink-0 mt-auto px-2"></div>
+            
+            <!-- Bulletproof VH Spacer for Mobile Bottom Reachability -->
+            <div class="w-full h-[35vh] shrink-0 pointer-events-none"></div>
+        </div>
+        
+        <div id="loading-overlay" class="absolute inset-0 bg-emerald-900/60 backdrop-blur-md z-[55] hidden flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
+            <div class="text-6xl animate-spin mb-4">🔬</div>
+            <h3 class="text-3xl font-black text-emerald-400 bg-white/95 px-8 py-3 rounded-full shadow-2xl border-4 border-emerald-300">Testing DNA...</h3>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="modal-success" class="absolute inset-0 bg-slate-900/60 flex items-center justify-center z-[70] hidden backdrop-blur-md pointer-events-auto">
+        <div class="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl border-8 border-emerald-400 text-center max-w-sm mx-4 transform transition-transform scale-90" id="success-box">
+            <div class="text-7xl mb-4 animate-bounce">🌿</div>
+            <h2 class="text-3xl font-black text-emerald-600 mb-4" id="success-title">Ka pai! Super smart!</h2>
+            <p class="text-xl font-bold text-slate-700 mb-8" id="success-msg">Recipe learned! Level Complete!</p>
+            <button id="btn-next" class="game-btn bg-emerald-500 hover:bg-emerald-400 text-white font-black text-2xl py-4 px-8 rounded-full border-4 border-white w-full shadow-lg">Next Sequence!</button>
+        </div>
+    </div>
+
+    <!-- FINALE MODAL -->
+    <div id="modal-finale" class="absolute inset-0 bg-slate-900/80 flex items-center justify-center z-[70] hidden backdrop-blur-md pointer-events-auto">
+        <div class="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl border-8 border-teal-500 text-center max-w-md mx-4 transform transition-transform scale-90 relative overflow-hidden" id="finale-box">
+            <div class="absolute inset-0 bio-grid opacity-20 pointer-events-none"></div>
+            <div class="text-8xl mb-4 animate-bounce relative z-10">👑🧬👑</div>
+            <h2 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 mb-4 relative z-10">Tino Pai Rawa Atu!</h2>
+            <p class="text-xl font-bold text-slate-700 mb-8 relative z-10">You completed the Advanced Biotech Journey! You are a brilliant bio-builder!</p>
+            <button id="btn-restart" class="game-btn bg-teal-600 hover:bg-teal-500 text-white font-black text-2xl py-4 px-8 rounded-full border-4 border-white w-full shadow-lg relative z-10">Replant & Restart</button>
+        </div>
+    </div>
+
+    <!-- EDUCATOR MODAL -->
+    <div id="modal-educator" class="absolute inset-0 bg-slate-900/60 flex items-center justify-center z-[80] hidden backdrop-blur-md pointer-events-auto">
+        <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border-8 border-amber-500 max-w-2xl mx-4 transform transition-transform scale-90 max-h-[90vh] overflow-y-auto" id="educator-box">
+            <h2 class="text-3xl font-black text-amber-600 mb-4 text-center">Educator Notes: Biotech & Pedagogy</h2>
+            <div class="text-slate-700 space-y-4 mb-6 text-sm sm:text-base font-bold">
+                <p>This application integrates <strong>50 Core Biotechnology & Bioengineering Concepts</strong> designed to gently introduce the foundations of biological science to 4-to-6-year-olds.</p>
+                <p>It utilizes <strong>Cognitive Load Theory (CLT)</strong> to make advanced natural processes accessible:</p>
+                <ul class="list-disc pl-6 space-y-2">
+                    <li><strong>Minimizing Extraneous Load:</strong> Interfaces are stripped of unnecessary text. The scrolling layout enforces a vertical flex-column to ensure tactile mobile behavior and guaranteed option visibility.</li>
+                    <li><strong>Managing Intrinsic Load:</strong> Complex technical ideas (e.g., DNA replication, bioremediation, genetic modification) are reduced to highly relatable, safe, single-step schemas like "nature's recipes" and "tiny helpers."</li>
+                    <li><strong>Modality Effect:</strong> The Text-to-Speech (TTS) feature prevents working memory overload by offloading reading demands to the auditory channel.</li>
+                </ul>
+            </div>
+            <button id="btn-close-educator" class="game-btn bg-amber-600 hover:bg-amber-500 text-white font-black text-xl py-3 px-6 rounded-full border-4 border-white w-full text-center shadow-lg">Concept Grasped!</button>
+        </div>
+    </div>
+
+    <script>
+        const GameState = { unlockedLevel: 1, currentLevelObj: null, currentScreen: 'hub', currentQuestionIndex: 0 };
+
+        const SoundManager = {
+            isMusicPlaying: false, initialized: false, bgMusic: null, bgParts: [], uiSynth: null, fxSynth: null, errorSynth: null,
+            init() {
+                if(this.initialized) return;
+                
+                this.uiSynth = new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }}).toDestination();
+                this.uiSynth.volume.value = -15;
+                this.fxSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 1 }}).toDestination();
+                this.fxSynth.volume.value = -12;
+                this.errorSynth = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, oscillator: { type: "triangle" }, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.2 }}).toDestination();
+                this.errorSynth.volume.value = -10;
+                
+                this.bgMusic = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.1, decay: 0.2, sustain: 0.3, release: 0.8 }}).toDestination();
+                this.bgMusic.volume.value = -20;
+                
+                const melodies = [
+                    [{"time": "0:0:0", "note": "C4", "dur": "8n"}, {"time": "0:0:2", "note": "G4", "dur": "8n"}, {"time": "0:1:0", "note": "E4", "dur": "4n"}, {"time": "0:2:0", "note": "C5", "dur": "8n"}, {"time": "0:2:2", "note": "G4", "dur": "8n"}, {"time": "0:3:0", "note": "E4", "dur": "4n"}],
+                    [{"time": "0:0:0", "note": "D4", "dur": "8n"}, {"time": "0:0:2", "note": "A4", "dur": "8n"}, {"time": "0:1:0", "note": "F4", "dur": "4n"}, {"time": "0:2:0", "note": "D5", "dur": "8n"}, {"time": "0:2:2", "note": "A4", "dur": "8n"}, {"time": "0:3:0", "note": "F4", "dur": "4n"}],
+                ];
+
+                this.bgParts = melodies.map(mel => {
+                    const part = new Tone.Part((time, value) => {
+                        this.bgMusic.triggerAttackRelease(value.note, value.dur, time);
+                    }, mel);
+                    part.loop = true; part.loopEnd = "1m"; return part;
+                });
+
+                Tone.Transport.loop = true; Tone.Transport.loopEnd = "16m";
+                const bpms = [110, 115]; 
+                
+                this.bgParts[0].start("0m").stop("8m");
+                this.bgParts[1].start("8m").stop("16m");
+
+                Tone.Transport.schedule((time) => Tone.Transport.bpm.setValueAtTime(bpms[0], time), "0m");
+                Tone.Transport.schedule((time) => Tone.Transport.bpm.setValueAtTime(bpms[1], time), "8m");
+
+                this.initialized = true;
+            },
+            playClick() { if(this.isMusicPlaying && Tone.context && Tone.context.state === 'running') this.uiSynth.triggerAttackRelease("C6", "32n"); },
+            playSuccess() { 
+                if(this.isMusicPlaying && Tone.context && Tone.context.state === 'running') {
+                    const now = Tone.now();
+                    this.fxSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+                    this.fxSynth.triggerAttackRelease(["G4", "C5", "E5"], "8n", now + 0.15);
+                } 
+            },
+            playError() { if(this.isMusicPlaying && Tone.context && Tone.context.state === 'running') this.errorSynth.triggerAttackRelease("C2", "8n"); },
+            async toggleMusic() {
+                if(!this.initialized) { await Tone.start(); this.init(); }
+                const btn = document.getElementById('btn-music');
+                if (this.isMusicPlaying) { Tone.Transport.pause(); btn.classList.replace('bg-teal-500', 'bg-emerald-500'); this.isMusicPlaying = false; } 
+                else { Tone.Transport.start(); btn.classList.replace('bg-emerald-500', 'bg-teal-500'); this.isMusicPlaying = true; }
+            }
+        };
+
+        let femaleVoice = null;
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google UK English Female')));
+            if (!femaleVoice) femaleVoice = voices.find(v => v.lang.startsWith('en'));
+        }
+        window.speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
+
+        const levelsData = [
+            { id: 1, title: "1. The Seed: Basics", icon: "🌱", subject: "Biology 101", characterId: "svg-piwakawaka", questions: [
+                { instruction: "What is Biology?", visualHTML: `<div class="text-8xl">🔬</div>`, options: ["The study of all living, growing things!", "Driving fast cars", "Going to sleep"], correctAnswer: "The study of all living, growing things!", successMsg: "Ka pai! Biology is all about life." },
+                { instruction: "What are plants and animals made of?", visualHTML: `<div class="text-8xl">🧩</div>`, options: ["Tiny, invisible puzzle pieces called cells", "Lego bricks", "Sweet candy"], correctAnswer: "Tiny, invisible puzzle pieces called cells", successMsg: "Yes! Cells are the building blocks of life." },
+                { instruction: "What is inside the tiny cells?", visualHTML: `<div class="text-8xl">📖</div>`, options: ["A magic instruction book called DNA", "A cookbook for making cake", "A bedtime storybook"], correctAnswer: "A magic instruction book called DNA", successMsg: "Awesome! DNA holds the instructions." },
+                { instruction: "How does your body know to make your eyes brown or blue?", visualHTML: `<div class="text-8xl">👁️</div>`, options: ["It reads your special DNA recipe!", "It guesses randomly", "It uses colored paint"], correctAnswer: "It reads your special DNA recipe!", successMsg: "Great! Your DNA recipe makes you special." },
+                { instruction: "What is Biotechnology?", visualHTML: `<div class="text-8xl">🧬</div>`, options: ["Using nature's magic recipes to build helpful things", "Breaking computers", "Hiding in a box"], correctAnswer: "Using nature's magic recipes to build helpful things", successMsg: "Perfect! We build amazing things with nature." }
+            ]},
+            { id: 2, title: "2. The Seed: Helpers", icon: "🦠", subject: "Tiny Helpers", characterId: "svg-kekeno", questions: [
+                { instruction: "What is Bioengineering?", visualHTML: `<div class="text-8xl">👷‍♀️</div>`, options: ["Being a builder, but using living cells", "Building a house with wood", "Making metal robots"], correctAnswer: "Being a builder, but using living cells", successMsg: "Ka pai! Bioengineers build with life." },
+                { instruction: "Are all bugs and bacteria bad?", visualHTML: `<div class="text-8xl">🐛</div>`, options: ["No! Most keep us and the Earth healthy", "Yes, they are all scary", "They only eat our shoes"], correctAnswer: "No! Most keep us and the Earth healthy", successMsg: "Yes! They are our tiny invisible helpers." },
+                { instruction: "How do we see the tiny cells?", visualHTML: `<div class="text-8xl">🔍</div>`, options: ["With a super-strong magic glass called a microscope", "With a telescope for the stars", "With a loud microphone"], correctAnswer: "With a super-strong magic glass called a microscope", successMsg: "Awesome! Microscopes let us see tiny things." },
+                { instruction: "Who works in the nature lab?", visualHTML: `<div class="text-8xl">👩‍🔬</div>`, options: ["Bio-scientists, and maybe you one day!", "Funny clowns", "Space astronauts"], correctAnswer: "Bio-scientists, and maybe you one day!", successMsg: "Great! You would make a brilliant bio-scientist." },
+                { instruction: "Do we use hammers in biotechnology?", visualHTML: `<div class="text-8xl">💧</div>`, options: ["No, we use water, light, and tiny cells", "Yes, and loud nails", "We use glue and tape"], correctAnswer: "No, we use water, light, and tiny cells", successMsg: "Perfect! Nature gives us our tools." }
+            ]},
+            { id: 3, title: "3. Sprout: Recipes", icon: "🍞", subject: "Food & Light", characterId: "svg-kiwi", questions: [
+                { instruction: "Can scientists change a DNA recipe?", visualHTML: `<div class="text-8xl">📝</div>`, options: ["Yes, they can add a new, helpful instruction", "No, they rip the book", "They just hide it"], correctAnswer: "Yes, they can add a new, helpful instruction", successMsg: "Ka pai! They can gently guide the recipe." },
+                { instruction: "How do we help a plant survive a hot summer?", visualHTML: `<div class="text-8xl">☀️</div>`, options: ["We give it the recipe for extra strong leaves", "We give it a tiny umbrella", "We shout at it"], correctAnswer: "We give it the recipe for extra strong leaves", successMsg: "Yes! A stronger recipe helps it survive." },
+                { instruction: "How does bread get so fluffy?", visualHTML: `<div class="text-8xl">🍞</div>`, options: ["With tiny living helpers called yeast", "Someone blows hot air into it", "Using magic dust"], correctAnswer: "With tiny living helpers called yeast", successMsg: "Awesome! Yeast is an early kind of biotech." },
+                { instruction: "How does milk turn into yummy cheese?", visualHTML: `<div class="text-8xl">🧀</div>`, options: ["Helpful bacteria eat the milk and change its shape", "Cows make the cheese directly", "By freezing the milk"], correctAnswer: "Helpful bacteria eat the milk and change its shape", successMsg: "Great! Bacteria help make yummy cheese." },
+                { instruction: "Why do fireflies glow in the night?", visualHTML: `<div class="text-8xl">✨</div>`, options: ["They have a special glow-in-the-dark DNA recipe", "They swallowed a flashlight", "They are on fire"], correctAnswer: "They have a special glow-in-the-dark DNA recipe", successMsg: "Perfect! Their DNA lets them glow." }
+            ]},
+            { id: 4, title: "4. Sprout: Healing", icon: "🛡️", subject: "Health & Earth", characterId: "svg-huntaway", questions: [
+                { instruction: "Can we give the firefly recipe to a plant?", visualHTML: `<div class="text-8xl">🌿</div>`, options: ["Yes! And the plant will gently glow in the dark", "No, it will explode", "It will turn invisible"], correctAnswer: "Yes! And the plant will gently glow in the dark", successMsg: "Ka pai! Bio-glowing plants are real." },
+                { instruction: "What happens when you get a cold?", visualHTML: `<div class="text-8xl">🤧</div>`, options: ["Your body builds invisible shields to fight germs", "Your body puts on a jacket", "Your body hides in bed"], correctAnswer: "Your body builds invisible shields to fight germs", successMsg: "Yes! Your body is a clever fighter." },
+                { instruction: "What is a vaccine?", visualHTML: `<div class="text-8xl">💉</div>`, options: ["A safe practice game for your body's shields", "A yummy sweet", "A type of band-aid"], correctAnswer: "A safe practice game for your body's shields", successMsg: "Awesome! It teaches your body how to win." },
+                { instruction: "Can biotech help animals?", visualHTML: `<div class="text-8xl">🐶</div>`, options: ["Yes, making medicines to keep them healthy", "No, it teaches them to read", "We just paint them blue"], correctAnswer: "Yes, making medicines to keep them healthy", successMsg: "Great! We help our animal friends too." },
+                { instruction: "What if the garden soil is dirty?", visualHTML: `<div class="text-8xl">🌍</div>`, options: ["Use special hungry bacteria to eat and clean the dirt", "Use a vacuum cleaner", "Wash it with soap"], correctAnswer: "Use special hungry bacteria to eat and clean the dirt", successMsg: "Perfect! Bacteria can clean up the Earth." }
+            ]},
+            { id: 5, title: "5. Sprout: Growth", icon: "🥕", subject: "Plant Tech", characterId: "svg-kea", questions: [
+                { instruction: "Can a plant heal itself?", visualHTML: `<div class="text-8xl">🌲</div>`, options: ["Yes, it grows its own sticky sap plaster", "No, it goes to the doctor", "It just cries"], correctAnswer: "Yes, it grows its own sticky sap plaster", successMsg: "Ka pai! Plants have their own healing magic." },
+                { instruction: "Can we make an apple that never turns brown?", visualHTML: `<div class="text-8xl">🍎</div>`, options: ["Yes, by turning off the turn-brown instruction", "Yes, by painting it red", "By keeping it in the fridge"], correctAnswer: "Yes, by turning off the turn-brown instruction", successMsg: "Yes! Turning off a tiny rule works." },
+                { instruction: "Can we put extra vitamins inside a carrot?", visualHTML: `<div class="text-8xl">🥕</div>`, options: ["Yes, so it makes you even stronger!", "No, it will turn you orange", "It makes the carrot sing"], correctAnswer: "Yes, so it makes you even stronger!", successMsg: "Awesome! Bio-carrots are super healthy." },
+                { instruction: "Are whales bioengineers?", visualHTML: `<div class="text-8xl">🐳</div>`, options: ["No, but swimming and eating keeps the ocean healthy", "Yes, they build giant bridges", "Yes, they wear lab coats"], correctAnswer: "No, but swimming and eating keeps the ocean healthy", successMsg: "Great! Animals help the ecosystem naturally." },
+                { instruction: "Is a spider web strong?", visualHTML: `<div class="text-8xl">🕸️</div>`, options: ["Yes, it is much stronger than steel!", "No, it is weaker than paper", "It is made of soft cotton"], correctAnswer: "Yes, it is much stronger than steel!", successMsg: "Perfect! Nature builds incredibly strong things." }
+            ]},
+            { id: 6, title: "6. Sprout: Building", icon: "🏗️", subject: "Bio-Materials", characterId: "svg-whio", questions: [
+                { instruction: "Can we copy the spider's recipe to make strong ropes?", visualHTML: `<div class="text-8xl">🧵</div>`, options: ["Yes, without even needing to bother the spider!", "We ask the spider to make it", "We steal from the spider"], correctAnswer: "Yes, without even needing to bother the spider!", successMsg: "Ka pai! We use the recipe, not the spider." },
+                { instruction: "If someone burns their hand, can we help?", visualHTML: `<div class="text-8xl">✋</div>`, options: ["Yes, we can grow them a brand-new patch of soft skin", "We use a bright sticker", "We wrap it in leaves"], correctAnswer: "Yes, we can grow them a brand-new patch of soft skin", successMsg: "Yes! Bio-skin is amazing." },
+                { instruction: "What if a dog loses a leg?", visualHTML: `<div class="text-8xl">🦿</div>`, options: ["Bioengineers can build a perfect moving robot leg", "We give them a tiny wheelchair", "We carry them everywhere"], correctAnswer: "Bioengineers can build a perfect moving robot leg", successMsg: "Awesome! Bionics help them run again." },
+                { instruction: "Can we 3D print with cells?", visualHTML: `<div class="text-8xl">🖨️</div>`, options: ["Yes, we can print a new part for a heart", "No, we only print with ink", "Only with hard plastic"], correctAnswer: "Yes, we can print a new part for a heart", successMsg: "Great! Bio-printing is the future." },
+                { instruction: "What happens to apple cores in the garden compost?", visualHTML: `<div class="text-8xl">🍂</div>`, options: ["Tiny bio-helpers turn them back into rich, happy soil", "They just disappear into the air", "They turn into hard rocks"], correctAnswer: "Tiny bio-helpers turn them back into rich, happy soil", successMsg: "Perfect! Bio-helpers recycle our food." }
+            ]},
+            { id: 7, title: "7. Stem: Eco Tech", icon: "♻️", subject: "Green Science", characterId: "svg-tui", questions: [
+                { instruction: "Can we make a hamburger without hurting a cow?", visualHTML: `<div class="text-8xl">🍔</div>`, options: ["Yes, we can grow just the meat using tiny cells", "No, we make it from mud", "We have to catch a wild cow"], correctAnswer: "Yes, we can grow just the meat using tiny cells", successMsg: "Ka pai! Lab-meat is safe and kind." },
+                { instruction: "Can green pond slime (algae) run a car?", visualHTML: `<div class="text-8xl">🚗</div>`, options: ["Yes, special algae can be turned into clean fuel!", "No, it is used to make ice cream", "We feed it to the dogs"], correctAnswer: "Yes, special algae can be turned into clean fuel!", successMsg: "Yes! Algae power is super green." },
+                { instruction: "Are plastic bottles bad for the Earth?", visualHTML: `<div class="text-8xl">🥤</div>`, options: ["Yes, but we can invent plant-plastic that melts away safely", "They are great because they last forever", "No, they are made from glass"], correctAnswer: "Yes, but we can invent plant-plastic that melts away safely", successMsg: "Awesome! Bio-plastics are much better." },
+                { instruction: "Can a bandage tell if a cut is healing?", visualHTML: `<div class="text-8xl">🩹</div>`, options: ["Yes, a bio-bandage changes color to say 'All better!'", "No, it sings a loud song", "It gets super hot"], correctAnswer: "Yes, a bio-bandage changes color to say 'All better!'", successMsg: "Great! Smart bandages help doctors." },
+                { instruction: "How do we stop mosquitoes from biting?", visualHTML: `<div class="text-8xl">🦟</div>`, options: ["We change their recipe so they don't want to bite", "We give them tiny nets", "We yell at them loudly"], correctAnswer: "We change their recipe so they don't want to bite", successMsg: "Perfect! Changing the recipe solves the problem." }
+            ]},
+            { id: 8, title: "8. Stem: Rescue", icon: "🌊", subject: "Nature Rescue", characterId: "svg-ruru", questions: [
+                { instruction: "Can biotech clean up an oil spill in the ocean?", visualHTML: `<div class="text-8xl">🛢️</div>`, options: ["Yes, we send in special oil-eating bacteria", "We use a giant towel", "We just drink the water"], correctAnswer: "Yes, we send in special oil-eating bacteria", successMsg: "Ka pai! Hungry bacteria save the fish." },
+                { instruction: "Can we bring back dinosaurs?", visualHTML: `<div class="text-8xl">🦖</div>`, options: ["No, their recipe books are too old and crumbly", "Yes, we will see them tomorrow", "They are just hiding"], correctAnswer: "No, their recipe books are too old and crumbly", successMsg: "Yes, sadly dinosaur DNA is too old." },
+                { instruction: "Can we save a forest from sickness?", visualHTML: `<div class="text-8xl">🌳</div>`, options: ["Yes, by giving the trees a natural medicine shield", "By putting them in a greenhouse", "By cutting them down"], correctAnswer: "Yes, by giving the trees a natural medicine shield", successMsg: "Awesome! We can heal the forest." },
+                { instruction: "Can we help the coral in the ocean?", visualHTML: `<div class="text-8xl">🪸</div>`, options: ["Yes, we can grow super-coral that loves warm water", "We bring them big ice cubes", "We paint them pink"], correctAnswer: "Yes, we can grow super-coral that loves warm water", successMsg: "Great! Super-coral saves the reefs." },
+                { instruction: "Can we make a t-shirt out of mushrooms?", visualHTML: `<div class="text-8xl">🍄</div>`, options: ["Yes! Mushroom roots grow into soft, strong fabric", "By weaving spider webs", "By sewing big leaves together"], correctAnswer: "Yes! Mushroom roots grow into soft, strong fabric", successMsg: "Perfect! Bio-clothes are amazing." }
+            ]},
+            { id: 9, title: "9. Stem: Future", icon: "🚀", subject: "Future Bioscience", characterId: "svg-takahe", questions: [
+                { instruction: "Can a machine smell if you are sick?", visualHTML: `<div class="text-8xl">👃</div>`, options: ["Yes, bio-sensors can smell tiny changes in your breath", "It just looks at your nose", "It tickles you"], correctAnswer: "Yes, bio-sensors can smell tiny changes in your breath", successMsg: "Ka pai! Bio-sensors are super sniffers." },
+                { instruction: "Can a tiny robot swim in your blood?", visualHTML: `<div class="text-8xl">🩸</div>`, options: ["Yes, nanobots deliver medicine exactly where it hurts", "They build a tiny house", "They just tickle your tummy"], correctAnswer: "Yes, nanobots deliver medicine exactly where it hurts", successMsg: "Yes! Nanobots are tiny heroes." },
+                { instruction: "Can we grow plants on Mars?", visualHTML: `<div class="text-8xl">🪐</div>`, options: ["Yes, by creating special space-seeds needing less water", "By giving plants tiny spacesuits", "By flying trees in a rocket"], correctAnswer: "Yes, by creating special space-seeds needing less water", successMsg: "Awesome! Space-plants are very tough." },
+                { instruction: "Can scientists grow real human tears in a lab?", visualHTML: `<div class="text-8xl">😢</div>`, options: ["Yes, to test eye drops without hurting real eyes", "Yes, to make scientists cry", "They just collect rain water"], correctAnswer: "Yes, to test eye drops without hurting real eyes", successMsg: "Great! Lab tears keep our eyes safe." },
+                { instruction: "Where do scientists keep all the DNA recipes?", visualHTML: `<div class="text-8xl">💻</div>`, options: ["In a giant digital computer library!", "In an old wooden bookcase", "Under a big rock"], correctAnswer: "In a giant digital computer library!", successMsg: "Perfect! Computers hold the bio-data." }
+            ]},
+            { id: 10, title: "10. Bloom: The Boss!", icon: "👑", subject: "Imagination", characterId: "svg-kakapo", questions: [
+                { instruction: "If you could mix two plants, what would you make?", visualHTML: `<div class="text-8xl">🍓</div>`, options: ["A strawberry that tastes like chocolate!", "A boring grey rock", "A flying car"], correctAnswer: "A strawberry that tastes like chocolate!", successMsg: "Ka pai! Your imagination is powerful." },
+                { instruction: "If a river was sick, what would you invent?", visualHTML: `<div class="text-8xl">🐟</div>`, options: ["A tiny mechanical fish that eats all the pollution!", "A very loud boat", "A swimming cat"], correctAnswer: "A tiny mechanical fish that eats all the pollution!", successMsg: "Yes! You can invent things to heal the Earth." },
+                { instruction: "Do we ever do bioengineering just to be mean?", visualHTML: `<div class="text-8xl">🤝</div>`, options: ["Never! We always respect nature and ask if it helps", "Yes, if we feel like it", "Only on Mondays"], correctAnswer: "Never! We always respect nature and ask if it helps", successMsg: "Awesome! Kindness is our biggest rule." },
+                { instruction: "What is the most important rule of the bio-lab?", visualHTML: `<div class="text-8xl">🌍</div>`, options: ["To use nature's secrets to heal the Earth and its people", "To make the most money", "To play games all day"], correctAnswer: "To use nature's secrets to heal the Earth and its people", successMsg: "Great! We heal and protect." },
+                { instruction: "Who decides how to use biotechnology?", visualHTML: `<div class="text-8xl">👑</div>`, options: ["I do! Because I care about animals, plants, and people", "A robot does", "A magic wizard"], correctAnswer: "I do! Because I care about animals, plants, and people", successMsg: "Perfect! You are the brilliant bio-boss!" }
+            ]}
+        ];
+
+        function sanitizeForSpeech(text) {
+            let safeText = text;
+            const dictionary = {"Kia ora": "Hello", "Pīwakawaka": "Fantail bird", "Ka pai": "Good job", "Tino Pai Rawa Atu": "Excellent", "Kekeno": "New Zealand fur seal", "DNA": "D N A", "Bioengineering": "Bio engineering"};
+            for (const [maori, english] of Object.entries(dictionary)) {
+                safeText = safeText.replace(new RegExp(maori, "gi"), english);
+            }
+            return safeText;
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(sanitizeForSpeech(text));
+            if (femaleVoice) utterance.voice = femaleVoice;
+            utterance.rate = 0.9; utterance.pitch = 1.1;
+            
+            const box = document.getElementById('instruction-box');
+            if (box && GameState.currentScreen === 'level') {
+                utterance.onstart = () => box.classList.add('tts-active');
+                utterance.onend = () => box.classList.remove('tts-active');
+                utterance.onerror = () => box.classList.remove('tts-active');
+            }
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function burstTechConfetti(x, y) {
+            const symbols = ['🧬', '🌿', '🔬', '🦠', '✨', '💚'];
+            for (let i = 0; i < 25; i++) {
+                let particle = document.createElement('div');
+                particle.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+                particle.className = 'particle text-3xl drop-shadow-md';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 80 + Math.random() * 150;
+                particle.style.setProperty('--tx', `calc(-50% + ${Math.cos(angle) * velocity}px)`);
+                particle.style.setProperty('--ty', `calc(-50% + ${Math.sin(angle) * velocity}px)`);
+                particle.style.setProperty('--rot', `${Math.random() * 360}deg`);
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 800);
+            }
+        }
+
+        function renderHub() {
+            const container = document.getElementById('map-nodes');
+            container.innerHTML = '';
+            levelsData.forEach((level) => {
+                const isLocked = level.id > GameState.unlockedLevel;
+                const btn = document.createElement('button');
+                btn.className = `game-btn p-4 sm:p-6 rounded-3xl border-4 border-white text-left flex items-center gap-4 w-full ${isLocked ? 'bg-slate-200 level-locked text-slate-400' : 'bg-white hover:bg-emerald-50 shadow-md'}`;
+                btn.innerHTML = `<div class="text-4xl sm:text-5xl drop-shadow-sm">${isLocked ? '🔒' : level.icon}</div><div class="flex-1 min-w-0"><div class="font-black text-lg sm:text-2xl text-slate-800 truncate">${level.title}</div><div class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLocked ? 'text-slate-400' : 'text-emerald-500'}">${isLocked ? 'Locked' : level.subject}</div></div>`;
+                if (!isLocked) btn.onclick = () => loadLevel(level);
+                container.appendChild(btn);
+            });
+        }
+
+        function loadLevel(level, isNextQuestion = false) {
+            GameState.currentLevelObj = level;
+            GameState.currentScreen = 'level';
+            
+            if (!isNextQuestion) {
+                GameState.currentQuestionIndex = 0;
+                document.getElementById('screen-hub').classList.replace('slide-in-right', 'slide-out-left');
+                document.getElementById('screen-level').classList.replace('slide-out-right', 'slide-in-right');
+            }
+            
+            const currentQ = level.questions[GameState.currentQuestionIndex];
+            
+            const progressContainer = document.getElementById('level-progress');
+            progressContainer.innerHTML = '';
+            for (let i = 0; i < level.questions.length; i++) {
+                const star = document.createElement('span');
+                star.innerText = '🌿';
+                star.className = `text-sm sm:text-xl drop-shadow-sm ${i <= GameState.currentQuestionIndex ? 'star-filled text-emerald-400' : 'star-empty text-slate-300'}`;
+                progressContainer.appendChild(star);
+            }
+            
+            document.getElementById('level-instruction').innerText = currentQ.instruction;
+            document.getElementById('level-visual').innerHTML = currentQ.visualHTML;
+            document.getElementById('level-character').innerHTML = document.getElementById(level.characterId).innerHTML;
+            document.getElementById('level-character').className = 'animate-float';
+
+            const optionsContainer = document.getElementById('level-options');
+            optionsContainer.innerHTML = '';
+            
+            const colors = ['bg-emerald-100 border-emerald-300 text-emerald-900', 'bg-teal-100 border-teal-300 text-teal-900', 'bg-amber-100 border-amber-300 text-amber-900'];
+            currentQ.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `game-btn ${colors[idx % colors.length]} hover:brightness-95 font-black text-lg sm:text-2xl py-4 px-6 sm:py-5 sm:px-8 rounded-2xl border-4 w-full h-auto min-h-[72px] whitespace-normal break-words leading-snug flex items-center justify-center shadow-md relative overflow-hidden`;
+                btn.innerHTML = `<span class="relative z-10">${opt}</span>`;
+                btn.onclick = () => checkAnswer(opt, level, btn);
+                optionsContainer.appendChild(btn);
+            });
+            
+            document.getElementById('level-playarea').scrollTop = 0;
+        }
+
+        function checkAnswer(selected, level, btnElement) {
+            const currentQ = level.questions[GameState.currentQuestionIndex];
+            const allBtns = document.getElementById('level-options').querySelectorAll('button');
+            
+            if (selected === currentQ.correctAnswer) {
+                SoundManager.playSuccess();
+                allBtns.forEach(b => b.disabled = true);
+                
+                btnElement.className = "game-btn bg-emerald-400 border-emerald-500 text-slate-900 font-black text-lg sm:text-2xl py-4 px-6 sm:py-5 sm:px-8 rounded-2xl border-4 w-full scale-[1.02] sm:scale-105 h-auto min-h-[72px] whitespace-normal break-words leading-snug flex items-center justify-center z-10 transition-transform duration-300 shadow-xl";
+                
+                const rect = btnElement.getBoundingClientRect();
+                burstTechConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                
+                document.getElementById('level-character').classList.replace('animate-float', 'animate-bounce-fast');
+                speak(currentQ.successMsg);
+
+                if (GameState.currentQuestionIndex < level.questions.length - 1) {
+                    setTimeout(() => {
+                        const loader = document.getElementById('loading-overlay');
+                        loader.classList.remove('hidden');
+                        loader.classList.add('pointer-events-auto');
+                        setTimeout(() => loader.classList.remove('opacity-0'), 10);
+                        
+                        setTimeout(() => {
+                            GameState.currentQuestionIndex++; 
+                            loadLevel(level, true);
+                            loader.classList.add('opacity-0');
+                            loader.classList.remove('pointer-events-auto');
+                            setTimeout(() => loader.classList.add('hidden'), 300);
+                        }, 1200); 
+                    }, 1500);
+                } else {
+                    setTimeout(() => {
+                        if(level.id === 10) { 
+                            const modal = document.getElementById('modal-finale');
+                            modal.classList.remove('hidden'); 
+                            document.getElementById('finale-box').classList.remove('scale-90');
+                            speak("Tino Pai Rawa Atu! You are a brilliant bio-builder!");
+                        } else {
+                            const modal = document.getElementById('modal-success');
+                            modal.classList.remove('hidden'); 
+                            document.getElementById('success-box').classList.remove('scale-90');
+                            speak("Ka pai! Super smart!");
+                            if (GameState.unlockedLevel === level.id) GameState.unlockedLevel++;
+                        }
+                    }, 1500);
+                }
+            } else {
+                SoundManager.playError();
+                
+                const originalClass = btnElement.className;
+                btnElement.className = "game-btn bg-rose-500 border-rose-600 text-white font-black text-lg sm:text-2xl py-4 px-6 sm:py-5 sm:px-8 rounded-2xl border-4 w-full h-auto min-h-[72px] whitespace-normal break-words leading-snug flex items-center justify-center shadow-md";
+                
+                setTimeout(() => btnElement.className = originalClass, 500);
+
+                const charEl = document.getElementById('level-character');
+                charEl.classList.remove('animate-float');
+                void charEl.offsetWidth; 
+                charEl.classList.add('error-shake');
+                setTimeout(() => { charEl.classList.remove('error-shake'); charEl.classList.add('animate-float'); }, 400);
+
+                speak("Not quite! Let's try again. " + currentQ.instruction);
+            }
+        }
+
+        window.onload = () => {
+            document.getElementById('btn-back')?.addEventListener('click', () => {
+                GameState.currentScreen = 'hub';
+                document.getElementById('screen-level').classList.replace('slide-in-right', 'slide-out-right');
+                document.getElementById('screen-hub').classList.replace('slide-out-left', 'slide-in-right');
+                window.speechSynthesis.cancel(); renderHub();
+            });
+            
+            document.getElementById('btn-next')?.addEventListener('click', () => {
+                document.getElementById('success-box').classList.add('scale-90');
+                setTimeout(() => document.getElementById('modal-success').classList.add('hidden'), 200);
+                document.getElementById('btn-back').click();
+            });
+
+            document.getElementById('btn-restart')?.addEventListener('click', () => {
+                document.getElementById('finale-box').classList.add('scale-90');
+                setTimeout(() => document.getElementById('modal-finale').classList.add('hidden'), 200);
+                GameState.unlockedLevel = 1;
+                document.getElementById('btn-back').click();
+            });
+            
+            document.getElementById('btn-speech')?.addEventListener('click', () => {
+                if (GameState.currentScreen === 'hub') speak(document.getElementById('hub-instruction').innerText);
+                else if (GameState.currentScreen === 'level') speak(GameState.currentLevelObj.questions[GameState.currentQuestionIndex].instruction);
+            });
+            
+            document.getElementById('btn-educator')?.addEventListener('click', () => {
+                document.getElementById('modal-educator').classList.remove('hidden');
+                setTimeout(() => document.getElementById('educator-box').classList.remove('scale-90'), 10);
+            });
+            
+            document.getElementById('btn-close-educator')?.addEventListener('click', () => {
+                document.getElementById('educator-box').classList.add('scale-90');
+                setTimeout(() => document.getElementById('modal-educator').classList.add('hidden'), 200);
+            });
+            
+            document.getElementById('btn-music')?.addEventListener('click', () => SoundManager.toggleMusic());
+            document.body.addEventListener('click', (e) => { if (e.target.closest('.game-btn') && e.target.id !== 'btn-music') SoundManager.playClick(); });
+            
+            renderHub();
+        };
+    </script>
+</body>
+</html>
